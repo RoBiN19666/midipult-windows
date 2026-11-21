@@ -1,7 +1,7 @@
 # MidiPult Windows
 
 <p align="center">
-  <img src="assets/icon-512.png" alt="MidiPult — панель Яндекс Станции Миди" width="180">
+  <img src="docs/img/logo.png" alt="MidiPult — панель Яндекс Станции Миди" width="520">
 </p>
 
 [![Release](https://img.shields.io/github/v/release/RoBiN19666/midipult-windows?style=flat-square&label=release)](https://github.com/RoBiN19666/midipult-windows/releases)
@@ -21,6 +21,11 @@ Windows-оболочка вокруг веб-панели **[MidiPult](https://g
 **не требуют пересборки клиента**.
 
 Текущая версия — **1.0.0**.
+
+Клиенты для панели:
+
+- [MidiPult Android](https://github.com/RoBiN19666/midipult-android) — версия для телефона:
+  поиск станций, карточки, меню и системный медиаплеер.
 
 ## Возможности
 
@@ -256,11 +261,6 @@ Get-Content .\MidiPult.exe.sha256
 - наружу приложение не ходит: только UDP-поиск в локальной сети и HTTP к выбранной колонке;
 - единственное исключение — проверка обновлений, и только по кнопке: `https` + хосты GitHub,
   обязательный SHA-256, никаких тихих установок.
-
-## Другие клиенты
-
-- **Android** — [midipult-android](https://github.com/RoBiN19666/midipult-android):
-  нативная оболочка, системный плеер, обновление APK из GitHub Releases.
 
 ## Ссылки
 
