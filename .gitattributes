@@ -1,0 +1,25 @@
+# Нормализация переводов строк: в репозитории LF,
+# при checkout на Windows — CRLF (нужно PowerShell-скриптам).
+* text=auto
+
+*.ps1   text eol=crlf
+*.iss   text eol=crlf
+*.cmd   text eol=crlf
+*.bat   text eol=crlf
+
+*.py    text eol=lf
+*.js    text eol=lf
+*.css   text eol=lf
+*.html  text eol=lf
+*.yml   text eol=lf
+*.md    text eol=lf
+*.json  text eol=lf
+
+# Важно: без BOM PowerShell 5.1 читает кириллицу в .ps1 как ANSI.
+# BOM в build.ps1 и build-installer.ps1 обязателен — не убирать.
+
+*.png   binary
+*.ico   binary
+*.exe   binary
+*.msi   binary
+*.zip   binary

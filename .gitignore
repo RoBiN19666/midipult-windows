@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+build/
+dist/
+*.spec
+data/
+test-data/
+test-panel-data/
+test-exe-data/
+tools/
+.venv/
