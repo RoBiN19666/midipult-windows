@@ -29,7 +29,7 @@ from core import (
 )
 
 APP_NAME = "MidiPult"
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.0.1"
 APP_ID = "RoBiN19666.MidiPult.Windows"
 WINDOW_TITLE = "MidiPult"
 LIST_TITLE = "MidiPult — колонки"

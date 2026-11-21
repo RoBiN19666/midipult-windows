@@ -13,7 +13,7 @@
 [Скачать](https://github.com/RoBiN19666/midipult-windows/releases/latest): установщик
 `MidiPult-<версия>-setup.exe` или портативный `MidiPult-<версия>-portable.exe`
 
-[Релиз Windows 1.0.0](https://github.com/RoBiN19666/midipult-windows/releases/tag/windows-v1.0.0) ·
+[Релиз Windows 1.0.1](https://github.com/RoBiN19666/midipult-windows/releases/tag/windows-v1.0.1) ·
 [Все релизы](https://github.com/RoBiN19666/midipult-windows/releases)
 
 Windows-оболочка вокруг веб-панели **[MidiPult](https://github.com/RoBiN19666/midipult)** для
@@ -21,7 +21,7 @@ Windows-оболочка вокруг веб-панели **[MidiPult](https://g
 колонку в локальной сети и открывает её панель во встроенном WebView2. Изменения панели
 **не требуют пересборки клиента**.
 
-Текущая версия — **1.0.0**.
+Текущая версия — **1.0.1**.
 
 Клиенты для панели:
 

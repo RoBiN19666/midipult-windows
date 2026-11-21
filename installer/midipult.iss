@@ -5,7 +5,7 @@
 ; settings stay in %APPDATA%\MidiPult, program in %LOCALAPPDATA%\Programs\MidiPult.
 
 #define MyAppName "MidiPult"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.0.1"
 #define MyAppPublisher "RoBiN19666"
 #define MyAppURL "https://github.com/RoBiN19666/midipult"
 #define MyAppExeName "MidiPult.exe"
