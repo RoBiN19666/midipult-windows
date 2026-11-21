@@ -131,6 +131,50 @@ class ReleaseTests(unittest.TestCase):
         assert release is not None
         self.assertEqual(release.version, "1.4.0")
 
+    def test_versioned_portable_asset(self):
+        payload = make_payload(
+            [
+                ("MidiPult-1.2.0-portable.exe", None),
+                ("MidiPult-1.2.0-portable.exe.sha256", None),
+            ]
+        )
+        release = parse_release(payload)
+        assert release is not None
+        self.assertEqual(release.version, "1.2.0")
+        self.assertIsNotNone(release.exe)
+        self.assertIsNone(release.setup)
+        assert release.exe is not None
+        self.assertTrue(release.exe[0].endswith("MidiPult-1.2.0-portable.exe"))
+
+    def test_versioned_portable_preferred_over_plain(self):
+        payload = make_payload(
+            [
+                ("MidiPult.exe", None),
+                ("MidiPult.exe.sha256", None),
+                ("MidiPult-1.2.0-portable.exe", None),
+                ("MidiPult-1.2.0-portable.exe.sha256", None),
+            ]
+        )
+        release = parse_release(payload)
+        assert release is not None
+        assert release.exe is not None
+        self.assertTrue(release.exe[0].endswith("MidiPult-1.2.0-portable.exe"))
+
+    def test_setup_name_wins_for_version(self):
+        payload = make_payload(
+            [
+                ("MidiPult-1.3.0-portable.exe", None),
+                ("MidiPult-1.3.0-portable.exe.sha256", None),
+                ("MidiPult-1.3.0-setup.exe", None),
+                ("MidiPult-1.3.0-setup.exe.sha256", None),
+            ]
+        )
+        release = parse_release(payload)
+        assert release is not None
+        self.assertEqual(release.version, "1.3.0")
+        self.assertIsNotNone(release.setup)
+        self.assertIsNotNone(release.exe)
+
 
 if __name__ == "__main__":
     unittest.main()

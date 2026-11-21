@@ -48,6 +48,14 @@ if (-not (Test-Path $target)) {
 $hash = (Get-FileHash $target -Algorithm SHA256).Hash.ToLower()
 Set-Content -Path "$target.sha256" -Value "$hash  $(Split-Path $target -Leaf)" -Encoding ascii
 
+# Портативный файл для релиза: имя с версией, чтобы сразу было видно, что это portable.
+$appVersion = (Select-String -Path (Join-Path $root 'app.py') -Pattern 'APP_VERSION = "([^"]+)"').Matches[0].Groups[1].Value
+$portable = Join-Path $root "dist\MidiPult-$appVersion-portable.exe"
+Copy-Item $target $portable -Force
+$portableHash = (Get-FileHash $portable -Algorithm SHA256).Hash.ToLower()
+Set-Content -Path "$portable.sha256" -Value "$portableHash  $(Split-Path $portable -Leaf)" -Encoding ascii
+
 $size = [math]::Round((Get-Item $target).Length / 1MB, 1)
 Write-Host "Готово: $target ($size МБ)" -ForegroundColor Green
 Write-Host "SHA-256: $hash"
+Write-Host "Портативная версия: $portable" -ForegroundColor Green

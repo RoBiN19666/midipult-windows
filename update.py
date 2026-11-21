@@ -36,7 +36,8 @@ USER_AGENT = "MidiPultWindows/1.0"
 TIMEOUT = 20.0
 MAX_DOWNLOAD = 200 * 1024 * 1024
 SETUP_RE = re.compile(r"^MidiPult-(.+)-setup\.exe$")
-EXE_RE = re.compile(r"^MidiPult\.exe$")
+PORTABLE_RE = re.compile(r"^MidiPult(?:-(.+))?-portable\.exe$")
+PLAIN_EXE_RE = re.compile(r"^MidiPult\.exe$")
 
 
 # ---------------------------------------------------------------------------
@@ -141,11 +142,18 @@ def _pair(assets: dict[str, str], pattern: re.Pattern[str]) -> tuple[str, str] |
     return None
 
 
+def _pair_portable(assets: dict[str, str]) -> tuple[str, str] | None:
+    """Портативный exe: сначала ``MidiPult-<версия>-portable.exe``, потом старое имя."""
+
+    return _pair(assets, PORTABLE_RE) or _pair(assets, PLAIN_EXE_RE)
+
+
 def release_version(payload: dict, assets: dict[str, str]) -> str:
-    for name in assets:
-        match = SETUP_RE.match(name)
-        if match:
-            return match.group(1)
+    for pattern in (SETUP_RE, PORTABLE_RE):
+        for name in assets:
+            match = pattern.match(name)
+            if match and match.group(1):
+                return match.group(1)
     tag = str(payload.get("tag_name") or "").strip()
     if tag.startswith("windows-v"):
         return tag[len("windows-v"):]
@@ -173,7 +181,7 @@ def parse_release(payload: dict) -> Release | None:
         version=version,
         page_url=page,
         setup=_pair(assets, SETUP_RE),
-        exe=_pair(assets, EXE_RE),
+        exe=_pair_portable(assets),
     )
     if release.setup is None and release.exe is None:
         return None

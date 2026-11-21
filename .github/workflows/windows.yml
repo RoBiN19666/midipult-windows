@@ -55,8 +55,8 @@ jobs:
         with:
           name: MidiPult-windows
           path: |
-            dist/MidiPult.exe
-            dist/MidiPult.exe.sha256
+            dist/MidiPult-*-portable.exe
+            dist/MidiPult-*-portable.exe.sha256
             dist/*-setup.exe
             dist/*-setup.exe.sha256
 
@@ -65,7 +65,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            dist/MidiPult.exe
-            dist/MidiPult.exe.sha256
+            dist/MidiPult-*-portable.exe
+            dist/MidiPult-*-portable.exe.sha256
             dist/*-setup.exe
             dist/*-setup.exe.sha256
