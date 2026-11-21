@@ -87,6 +87,32 @@ $size = [math]::Round((Get-Item $setupExe).Length / 1MB, 1)
 Write-Host "Готово: $setupExe ($size МБ)" -ForegroundColor Green
 Write-Host "SHA-256: $hash"
 
+# Манифест обновлений: роли файлов вместо имён. Клиент берёт имя и хеш отсюда,
+# поэтому ассеты можно переименовывать, не ломая обновление.
+$portable = Join-Path $root "dist\MidiPult-$appVersion-portable.exe"
+if (-not (Test-Path $portable)) {
+    throw "Нет портативного файла $portable — сначала запустите build.ps1"
+}
+$manifest = [ordered]@{
+    version = $appVersion
+    files   = [ordered]@{
+        portable = [ordered]@{
+            name   = (Split-Path $portable -Leaf)
+            size   = (Get-Item $portable).Length
+            sha256 = (Get-FileHash $portable -Algorithm SHA256).Hash.ToLower()
+        }
+        setup    = [ordered]@{
+            name   = (Split-Path $setupExe -Leaf)
+            size   = (Get-Item $setupExe).Length
+            sha256 = $hash
+        }
+    }
+}
+$manifestPath = Join-Path $root 'dist\update.json'
+$json = ($manifest | ConvertTo-Json -Depth 5) + "`n"
+[System.IO.File]::WriteAllText($manifestPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+Write-Host "Манифест обновлений: $manifestPath" -ForegroundColor Green
+
 if ($Test) {
     $appExe = Join-Path $env:LOCALAPPDATA 'Programs\MidiPult\MidiPult.exe'
     $startLnk = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\MidiPult\MidiPult.lnk'

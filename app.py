@@ -29,7 +29,7 @@ from core import (
 )
 
 APP_NAME = "MidiPult"
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0.2"
 APP_ID = "RoBiN19666.MidiPult.Windows"
 WINDOW_TITLE = "MidiPult"
 LIST_TITLE = "MidiPult — колонки"
@@ -605,20 +605,22 @@ class MidiPultApp:
         if not update.is_newer(release.version, APP_VERSION):
             return {"ok": False, "error": f"Установлена последняя версия — {APP_VERSION}."}
 
-        pair = release.setup if installed else release.exe
-        if pair is None:
+        artifact = release.setup if installed else release.exe
+        if artifact is None:
             return {
                 "ok": False,
                 "url": page,
                 "error": "В релизе нет подходящего файла — обновитесь вручную.",
             }
 
-        file_url, checksum_url = pair
-        name = update.file_name(file_url) or "MidiPult.exe"
-        try:
-            expected = update.parse_sha256(update.fetch_text(checksum_url), name)
-        except Exception as exc:
-            return {"ok": False, "url": page, "error": f"Не удалось получить SHA-256: {exc}"}
+        expected = artifact.sha256
+        if not expected and artifact.checksum_url:
+            try:
+                expected = update.parse_sha256(
+                    update.fetch_text(artifact.checksum_url), artifact.name
+                )
+            except Exception as exc:
+                return {"ok": False, "url": page, "error": f"Не удалось получить SHA-256: {exc}"}
         if not expected:
             return {
                 "ok": False,
@@ -626,13 +628,15 @@ class MidiPultApp:
                 "error": "В релизе нет корректного SHA-256 — обновление отменено.",
             }
 
+        name = artifact.name
+
         target_dir = self.data_dir / "updates" if installed else update.executable_path().parent
         # Портативную версию нельзя писать прямо в имя работающего файла.
         final = target_dir / name if installed else target_dir / (name + ".new")
         partial = final.with_name(final.name + ".part")
 
         try:
-            update.download(file_url, partial)
+            update.download(artifact.url, partial)
         except Exception as exc:
             self._discard(partial)
             return {"ok": False, "url": page, "error": f"Не удалось скачать обновление: {exc}"}

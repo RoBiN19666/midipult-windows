@@ -109,13 +109,27 @@ def sha256_file(path: Path) -> str:
 # Разбор релиза
 # ---------------------------------------------------------------------------
 
+MANIFEST_NAME = "update.json"
+ROLE_SETUP = "setup"
+ROLE_PORTABLE = "portable"
+
+
+@dataclass
+class Artifact:
+    """Файл релиза: имя, адрес и ожидаемый SHA-256."""
+
+    name: str
+    url: str
+    sha256: str = ""
+    checksum_url: str = ""
+
 
 @dataclass
 class Release:
     version: str
     page_url: str
-    setup: tuple[str, str] | None = None  # (файл, его .sha256)
-    exe: tuple[str, str] | None = None
+    setup: Artifact | None = None
+    exe: Artifact | None = None
 
 
 def _assets(payload: dict) -> dict[str, str]:
@@ -130,22 +144,44 @@ def _assets(payload: dict) -> dict[str, str]:
     return found
 
 
-def _pair(assets: dict[str, str], pattern: re.Pattern[str]) -> tuple[str, str] | None:
-    """Файл и его контрольная сумма. Без .sha256 пара считается отсутствующей."""
+def _clean_sha(value: str) -> str:
+    digest = (value or "").strip().lower()
+    return digest if re.fullmatch(r"[0-9a-f]{64}", digest) else ""
+
+
+def _artifact_by_name(assets: dict[str, str], pattern: re.Pattern[str]) -> Artifact | None:
+    """Запасной путь: роль определяется по имени файла (для релизов без манифеста)."""
 
     for name, url in assets.items():
         if not pattern.match(name):
             continue
         checksum = assets.get(name + ".sha256")
         if checksum:
-            return url, checksum
+            return Artifact(name=name, url=url, checksum_url=checksum)
     return None
 
 
-def _pair_portable(assets: dict[str, str]) -> tuple[str, str] | None:
-    """Портативный exe: сначала ``MidiPult-<версия>-portable.exe``, потом старое имя."""
+def _manifest_files(manifest: dict) -> dict:
+    files = manifest.get("files")
+    if isinstance(files, dict):
+        return files
+    return {key: value for key, value in manifest.items() if isinstance(value, dict)}
 
-    return _pair(assets, PORTABLE_RE) or _pair(assets, PLAIN_EXE_RE)
+
+def _artifact_from_manifest(files: dict, role: str, assets: dict[str, str]) -> Artifact | None:
+    """Роль из манифеста: имя файла берётся оттуда, а не угадывается по шаблону."""
+
+    item = files.get(role)
+    if not isinstance(item, dict):
+        return None
+    name = str(item.get("name") or "").strip()
+    if not name or name not in assets:
+        return None
+    digest = _clean_sha(str(item.get("sha256") or ""))
+    checksum_url = "" if digest else assets.get(name + ".sha256", "")
+    if not digest and not checksum_url:
+        return None
+    return Artifact(name=name, url=assets[name], sha256=digest, checksum_url=checksum_url)
 
 
 def release_version(payload: dict, assets: dict[str, str]) -> str:
@@ -160,8 +196,13 @@ def release_version(payload: dict, assets: dict[str, str]) -> str:
     return tag.lstrip("vV")
 
 
-def parse_release(payload: dict) -> Release | None:
-    """Разбирает ответ GitHub API. Черновики и пре-релизы не предлагаются."""
+def parse_release(payload: dict, manifest: dict | None = None) -> Release | None:
+    """Разбирает ответ GitHub API. Черновики и пре-релизы не предлагаются.
+
+    Если в релизе есть ``update.json``, роли файлов берутся из него: имена ассетов
+    можно менять свободно, обновление не сломается. Без манифеста работает разбор
+    по именам — чтобы не ломать уже выпущенные релизы.
+    """
 
     if not isinstance(payload, dict):
         return None
@@ -169,19 +210,28 @@ def parse_release(payload: dict) -> Release | None:
         return None
 
     assets = _assets(payload)
-    version = release_version(payload, assets)
-    if not version:
-        return None
-
     page = str(payload.get("html_url") or "").strip()
     if not allowed_url(page):
         page = RELEASE_PAGE
 
+    if isinstance(manifest, dict):
+        files = _manifest_files(manifest)
+        setup = _artifact_from_manifest(files, ROLE_SETUP, assets)
+        exe = _artifact_from_manifest(files, ROLE_PORTABLE, assets)
+        if setup or exe:
+            version = str(manifest.get("version") or "").strip() or release_version(payload, assets)
+            if version:
+                return Release(version=version, page_url=page, setup=setup, exe=exe)
+
+    version = release_version(payload, assets)
+    if not version:
+        return None
+
     release = Release(
         version=version,
         page_url=page,
-        setup=_pair(assets, SETUP_RE),
-        exe=_pair_portable(assets),
+        setup=_artifact_by_name(assets, SETUP_RE),
+        exe=_artifact_by_name(assets, PORTABLE_RE) or _artifact_by_name(assets, PLAIN_EXE_RE),
     )
     if release.setup is None and release.exe is None:
         return None
@@ -205,7 +255,15 @@ def _request(url: str) -> Request:
 def fetch_release() -> Release | None:
     with urlopen(_request(RELEASES_API), timeout=TIMEOUT) as response:
         payload = json.loads(response.read().decode("utf-8", "replace"))
-    return parse_release(payload)
+
+    manifest = None
+    manifest_url = _assets(payload).get(MANIFEST_NAME)
+    if manifest_url:
+        try:
+            manifest = json.loads(fetch_text(manifest_url).lstrip("\ufeff"))
+        except (OSError, ValueError):
+            manifest = None
+    return parse_release(payload, manifest)
 
 
 def fetch_text(url: str) -> str:

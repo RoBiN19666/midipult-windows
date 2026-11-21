@@ -97,8 +97,8 @@ class ReleaseTests(unittest.TestCase):
         self.assertIsNotNone(release.setup)
         self.assertIsNotNone(release.exe)
         assert release.setup is not None
-        self.assertTrue(release.setup[0].endswith("MidiPult-1.2.0-setup.exe"))
-        self.assertTrue(release.setup[1].endswith("-setup.exe.sha256"))
+        self.assertTrue(release.setup.name.endswith("MidiPult-1.2.0-setup.exe"))
+        self.assertTrue(release.setup.checksum_url.endswith("-setup.exe.sha256"))
 
     def test_draft_and_prerelease_are_skipped(self):
         self.assertIsNone(parse_release(make_payload([("MidiPult.exe", None)], draft=True)))
@@ -144,7 +144,7 @@ class ReleaseTests(unittest.TestCase):
         self.assertIsNotNone(release.exe)
         self.assertIsNone(release.setup)
         assert release.exe is not None
-        self.assertTrue(release.exe[0].endswith("MidiPult-1.2.0-portable.exe"))
+        self.assertTrue(release.exe.name.endswith("MidiPult-1.2.0-portable.exe"))
 
     def test_versioned_portable_preferred_over_plain(self):
         payload = make_payload(
@@ -158,7 +158,7 @@ class ReleaseTests(unittest.TestCase):
         release = parse_release(payload)
         assert release is not None
         assert release.exe is not None
-        self.assertTrue(release.exe[0].endswith("MidiPult-1.2.0-portable.exe"))
+        self.assertTrue(release.exe.name.endswith("MidiPult-1.2.0-portable.exe"))
 
     def test_setup_name_wins_for_version(self):
         payload = make_payload(
@@ -174,6 +174,67 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(release.version, "1.3.0")
         self.assertIsNotNone(release.setup)
         self.assertIsNotNone(release.exe)
+
+
+class ManifestTests(unittest.TestCase):
+    """Роли файлов берутся из update.json — имена ассетов не важны."""
+
+    MANIFEST = {
+        "version": "1.5.0",
+        "files": {
+            "portable": {"name": "weird-win64.exe", "sha256": "c" * 64},
+            "setup": {"name": "installer-weird.exe", "sha256": "d" * 64},
+        },
+    }
+
+    def _payload(self, names):
+        return make_payload([(name, None) for name in names])
+
+    def test_roles_come_from_manifest(self):
+        release = parse_release(
+            self._payload(["weird-win64.exe", "installer-weird.exe"]), self.MANIFEST
+        )
+        assert release is not None
+        self.assertEqual(release.version, "1.5.0")
+        assert release.exe is not None and release.setup is not None
+        self.assertEqual(release.exe.name, "weird-win64.exe")
+        self.assertEqual(release.exe.sha256, "c" * 64)
+        self.assertEqual(release.setup.name, "installer-weird.exe")
+        self.assertEqual(release.setup.sha256, "d" * 64)
+
+    def test_manifest_overrides_name_guess(self):
+        manifest = {
+            "version": "1.5.0",
+            "files": {"portable": {"name": "MidiPult-1.5.0-setup.exe", "sha256": "e" * 64}},
+        }
+        release = parse_release(self._payload(["MidiPult-1.5.0-setup.exe"]), manifest)
+        assert release is not None
+        self.assertIsNotNone(release.exe)
+        self.assertIsNone(release.setup)
+
+    def test_missing_manifest_file_falls_back_to_names(self):
+        manifest = {
+            "version": "1.5.0",
+            "files": {"portable": {"name": "нет-такого.exe", "sha256": "f" * 64}},
+        }
+        release = parse_release(self._payload(["MidiPult.exe", "MidiPult.exe.sha256"]), manifest)
+        assert release is not None
+        assert release.exe is not None
+        self.assertEqual(release.exe.name, "MidiPult.exe")
+
+    def test_bad_sha_in_manifest_uses_sibling_checksum(self):
+        manifest = {"version": "1.5.0", "files": {"portable": {"name": "app.exe", "sha256": "не хеш"}}}
+        release = parse_release(self._payload(["app.exe", "app.exe.sha256"]), manifest)
+        assert release is not None
+        assert release.exe is not None
+        self.assertEqual(release.exe.sha256, "")
+        self.assertTrue(release.exe.checksum_url.endswith("app.exe.sha256"))
+
+    def test_manifest_without_version_uses_tag(self):
+        manifest = {"files": {"portable": {"name": "a.exe", "sha256": "a" * 64}}}
+        release = parse_release(self._payload(["a.exe"]), manifest)
+        assert release is not None
+        self.assertEqual(release.version, "1.2.0")
 
 
 if __name__ == "__main__":
