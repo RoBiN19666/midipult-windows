@@ -181,17 +181,20 @@ PANEL_BAR_JS = """
 
   var host = document.createElement('div');
   host.id = 'midipult-bar';
-  host.style.cssText = 'position:fixed;left:14px;top:14px;z-index:2147483647;' +
-    'opacity:1;transition:opacity .25s ease;';
+  host.style.cssText = 'position:fixed;left:0;top:50%;transform:translateY(-50%);' +
+    'z-index:2147483647;';
 
   var root = host.attachShadow({ mode: 'open' });
   root.innerHTML =
     '<style>' +
       ':host{all:initial}' +
-      '.bar{display:flex;align-items:center;gap:2px;padding:4px;border-radius:13px;' +
-      'background:rgba(13,15,29,.88);border:1px solid rgba(120,130,190,.26);' +
-      'box-shadow:0 10px 26px rgba(0,0,0,.42);backdrop-filter:blur(10px)}' +
-      'button{all:unset;box-sizing:border-box;width:30px;height:28px;display:grid;' +
+      '.rail{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 3px;' +
+      'border-radius:0 13px 13px 0;background:rgba(13,15,29,.86);' +
+      'border:1px solid rgba(120,130,190,.26);border-left:0;' +
+      'box-shadow:0 10px 26px rgba(0,0,0,.42);backdrop-filter:blur(10px);' +
+      'opacity:.5;transition:opacity .18s ease}' +
+      ':host(:hover) .rail{opacity:1}' +
+      'button{all:unset;box-sizing:border-box;width:32px;height:28px;display:grid;' +
       'place-items:center;border-radius:9px;color:#d5d9f2;cursor:pointer;' +
       'transition:background .15s ease,color .15s ease}' +
       'button:hover{background:rgba(140,150,220,.2);color:#fff}' +
@@ -200,7 +203,7 @@ PANEL_BAR_JS = """
       'svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.7;' +
       'stroke-linecap:round;stroke-linejoin:round}' +
     '</style>' +
-    '<div class="bar">' +
+    '<div class="rail">' +
       '<button data-a="list" title="Список колонок" aria-label="Список колонок">' +
         '<svg viewBox="0 0 16 16"><path d="M9.5 3.5 5 8l4.5 4.5"/></svg>' +
       '</button>' +
@@ -231,7 +234,7 @@ PANEL_BAR_JS = """
     })();
   }
 
-  root.querySelector('.bar').addEventListener('click', function (event) {
+  root.querySelector('.rail').addEventListener('click', function (event) {
     var button = event.target.closest('button[data-a]');
     if (!button) { return; }
     event.preventDefault();
@@ -239,18 +242,9 @@ PANEL_BAR_JS = """
     call(button.getAttribute('data-a'));
   });
 
-  var idle = 0;
-  function wake() {
-    host.style.opacity = '1';
-    clearTimeout(idle);
-    idle = setTimeout(function () { host.style.opacity = '0'; }, 3500);
-  }
-  host.addEventListener('mouseenter', wake);
-  document.addEventListener('mousemove', wake, { passive: true });
-  wake();
-
   (document.body || document.documentElement).appendChild(host);
 })();
+
 """
 
 
